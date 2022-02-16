@@ -5,8 +5,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from authentication.models import SellerModel, CustomerModel
 from authentication.permissions import SellerPermission
-from .models import *
+from .threads import send_booking_mail
 from .serializers import *
+from .models import *
 
 @api_view(["POST"])
 def makeBooking(request):
@@ -22,7 +23,6 @@ def makeBooking(request):
             service = ServiceModel.objects.get(id=serializer.data["service_id"])
             # seats = int(serializer.data["seats"])
             timing = serializer.data["date"]
-            saloon = service.saloon
             # avialable_seats = int(saloon.saloon_seats.filter(is_available=True).count())
             # if avialable_seats < seats:
             #     return Response({"message":"These many seats are not available", "available_seats":avialable_seats}, status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
@@ -37,6 +37,8 @@ def makeBooking(request):
             # for obj in SeatModel.objects.filter(saloon=saloon, is_available=True)[:seats]:
             #     obj.is_available = False
             #     obj.save()
+            thread_obj = send_booking_mail(user.email, timing, service)
+            thread_obj.start()
             ser = UserOrderSerializer(cart_obj)
             return Response({"message":"Booking Done", "data":ser.data})
         return Response({"error":serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
